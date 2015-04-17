@@ -2,6 +2,7 @@ package application;
 
 import java.util.ArrayList;
 
+
 public class Board {
 
 	public static final int FIRST_PLAYER = 1;
@@ -18,6 +19,7 @@ public class Board {
 	private int[][] grid;
 	private static ArrayList<Grid> player1stones;
 	private static ArrayList<Grid> player2stones;
+	private static boolean isLarge;
 
 	public static int getWidth() {
 		return width;
@@ -69,6 +71,10 @@ public class Board {
 	}
 
 	public Board(int sideLen) {
+		if (sideLen > 4)
+			isLarge = true;
+		else
+			isLarge = false;
 		this.width = sideLen;
 		this.height = sideLen;
 		this.diag = width + height - 1;
@@ -77,6 +83,8 @@ public class Board {
 		this.columns = initCols();
 		this.ulDiags = initDiags();
 		this.urDiags = initDiags();
+		this.player1stones = new ArrayList<Grid>();
+		this.player2stones = new ArrayList<Grid>();
 	}
 
 	private int[][] initGrid() {
@@ -173,7 +181,7 @@ public class Board {
 		}
 	}
 
-	public boolean checkLine(boolean isLarge) {
+	public boolean checkLine() {
 		int checkNum = isLarge ? 4 : 3;
 		int consectCount = 0;
 		int prev = EMPTY_SPOT;
@@ -215,7 +223,7 @@ public class Board {
 		return false;
 	}
 
-	public boolean checkDiag(boolean isLarge) {
+	public boolean checkDiag() {
 		int checkNum = isLarge ? 4 : 3;
 		int consectCount = 0;
 		int prev = EMPTY_SPOT;
@@ -239,13 +247,103 @@ public class Board {
 		return false;
 	}
 
-	public boolean update(Grid move) {
-		return false;
+	public static Grid convertToXY(int diag, int subIndex, boolean isUL) {
+		if (isUL)
+			if (diag < height)
+				return new Grid(subIndex, subIndex - diag + width
+						- 1);
+			else
+				return new Grid(diag + subIndex - width + 1,
+						subIndex);
+		else {
+			if (diag < height)
+				return new Grid(subIndex, diag - subIndex);
+			else
+				return new Grid(diag + subIndex - width + 1,
+						width - 1 - subIndex);
+		}
+	}
+
+	public static int getURDiagIndex(Grid loc) {
+		return loc.getXPos() + loc.getYPos();
+	}
+
+	public static int getULDiagIndex(Grid loc) {
+		return loc.getYPos() - loc.getXPos() + width - 1;
+	}
+
+	public static int getURDiagSubIndex(Grid loc) {
+		int urIndex = getURDiagIndex(loc);
+		if (urIndex >= width)
+			return width - 1 - loc.getXPos();
+		else
+			return loc.getYPos();
+	}
+
+	public static int getULDiagSubIndex(Grid loc) {
+		int ulIndex = getULDiagIndex(loc);
+		if (ulIndex >= width)
+			return loc.getXPos();
+		else
+			return loc.getYPos();
+	}
+
+	public boolean update(Grid move, boolean first) {
+		if (!isGridValid(move))
+			return false;
+		int marker = first ? FIRST_PLAYER : SECOND_PLAYER;
+		int uldiagindex = getULDiagIndex(move);
+		int urdiagindex = getURDiagIndex(move);
+		int uldiagsub = getULDiagSubIndex(move);
+		int urdiagsub = getURDiagSubIndex(move);
+		grid[move.getYPos()][move.getXPos()] = marker;
+		rows.get(move.getYPos())[move.getXPos()] = marker;
+		columns.get(move.getXPos())[move.getYPos()] = marker;
+		ulDiags.get(uldiagindex)[uldiagsub] = marker;
+		urDiags.get(urdiagindex)[urdiagsub] = marker;
+		if (first)
+			player1stones.add(move);
+		else
+			player2stones.add(move);
+		return true;
+	}
+
+	public boolean withdraw(Grid move) {
+		if (!isGridValid(move) || isOccupied(move))
+			return false;
+		if (!player1stones.contains(move) && !player2stones.contains(move))
+			return false;
+		int uldiagindex = getULDiagIndex(move);
+		int urdiagindex = getURDiagIndex(move);
+		int uldiagsub = getULDiagSubIndex(move);
+		int urdiagsub = getURDiagSubIndex(move);
+		grid[move.getYPos()][move.getXPos()] = EMPTY_SPOT;
+		rows.get(move.getYPos())[move.getXPos()] = EMPTY_SPOT;
+		columns.get(move.getXPos())[move.getYPos()] = EMPTY_SPOT;
+		ulDiags.get(uldiagindex)[uldiagsub] = EMPTY_SPOT;
+		urDiags.get(urdiagindex)[urdiagsub] = EMPTY_SPOT;
+		if (player1stones.contains(move))
+			player1stones.remove(move);
+		else
+			player2stones.remove(move);
+		return true;
 	}
 
 	public static boolean isGridValid(Grid g) {
 		return g != null && g.getXPos() < width && g.getYPos() < height
 				&& g.getXPos() > -1 && g.getYPos() > -1;
+	}
+
+	public boolean isFull() {
+		for (int[] arr : grid)
+			for (int i : arr)
+				if (i == EMPTY_SPOT)
+					return false;
+		return true;
+	}
+
+	public boolean isOccupied(Grid g) {
+		return grid[g.getYPos()][g.getYPos()] != 0;
 	}
 
 }

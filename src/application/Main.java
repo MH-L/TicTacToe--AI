@@ -2,6 +2,8 @@ package application;
 
 import java.util.Scanner;
 
+import exception.InvalidMoveException;
+
 public class Main {
 	private static Game game;
 
@@ -56,7 +58,51 @@ public class Main {
 					+ " Please re-enter your last choice.");
 			dispMode = reader.nextLine();
 		}
+		printInstructions();
 		System.out.println("Here is the game board.");
 		game.getBoard().renderBoard(Integer.parseInt(dispMode));
+		while (!game.gameover()) {
+			String dispString = game.getActivePlayer() ? "Player 1, " : "Player 2, ";
+			System.out.println(dispString + "it is your turn now.");
+			String userIn = reader.nextLine();
+			String[] split = userIn.split(",");
+			if (split.length != 2) {
+				System.out.println("The location you entered is invalid!"
+						+ " Please re-enter.");
+				continue;
+			} else {
+				if (!isNumeric(split[1]) || !isNumeric(split[0])) {
+					System.out.println("The location you entered is invalid!"
+							+ " Please re-enter.");
+				} else {
+					int xPos = Integer.parseInt(split[0]);
+					int yPos = Integer.parseInt(split[1]);
+					Grid toPlaceStone = new Grid(yPos - 1, xPos - 1);
+					try {
+						game.update(toPlaceStone);
+					} catch (InvalidMoveException e) {
+						System.out.println(e.getMessage());
+						continue;
+					}
+				}
+			}
+		}
+	}
+
+	public static void printInstructions() {
+		System.out.println("To place a stone, "
+				+ "enter two numbers separated by a comma.");
+		System.out.println("e.g. \"1,2\", \"3,3\" are all valid inputs.");
+		System.out.println("However, inputs such as \"4,5,6\","
+				+ " \"A,2\", \"3\" are not valid.");
+	}
+
+	public static boolean isNumeric(String str) {
+		try {
+			double d = Double.parseDouble(str);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
 	}
 }
